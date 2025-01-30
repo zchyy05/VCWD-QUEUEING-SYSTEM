@@ -21,11 +21,14 @@ export class Division {
   @Column()
   division_name: string;
 
-  @Column()
+  @Column({ nullable: true })
   qr_code: string;
 
-  @OneToMany(() => Department, (department) => department.division)
-  departments: Department[];
+  @ManyToOne(() => Department, (department) => department.division, {
+    onDelete: "CASCADE",
+  })
+  @JoinColumn({ name: "department_id" })
+  department: Department;
 
   @OneToMany(() => User, (user) => user.division)
   users: User[];

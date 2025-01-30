@@ -10,7 +10,7 @@ import {
   OneToMany,
 } from "typeorm";
 import { User } from "./User";
-import { QueueTransaction } from "./QueueTrasaction";
+import { QueueTransaction } from "./QueueTransaction";
 import { Queue } from "./Queue";
 @Entity()
 export class Customer {

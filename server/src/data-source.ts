@@ -7,7 +7,7 @@ import { Department } from "./entity/Department";
 import { Division } from "./entity/Division";
 import { Priorities } from "./entity/Priorities";
 import { Queue } from "./entity/Queue";
-import { QueueTransaction } from "./entity/QueueTrasaction";
+import { QueueTransaction } from "./entity/QueueTransaction";
 
 export const AppDataSource = new DataSource({
   type: "postgres",

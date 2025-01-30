@@ -15,20 +15,16 @@ export class Department {
   @PrimaryGeneratedColumn()
   department_id: number;
 
-  @Column()
-  description: string;
+  @Column({ unique: true })
+  department_name: string;
 
-  @ManyToOne(() => Division)
+  @OneToMany(() => Division, (division) => division.department)
   @JoinColumn({ name: "division_id" })
-  division: Division;
+  division: Division[];
 
   @CreateDateColumn()
   created_at: Date;
 
   @UpdateDateColumn()
   updated_at: Date;
-
-  @ManyToOne(() => User)
-  @JoinColumn({ name: "user_id" })
-  user: User;
 }

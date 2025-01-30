@@ -11,7 +11,7 @@ import {
 } from "typeorm";
 import { Customer } from "./Customer";
 import { Division } from "./Division";
-import { QueueTransaction } from "./QueueTrasaction";
+import { QueueTransaction } from "./QueueTransaction";
 
 @Entity()
 export class Queue {

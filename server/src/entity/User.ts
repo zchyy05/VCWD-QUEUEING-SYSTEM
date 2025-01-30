@@ -12,7 +12,7 @@ import {
 import { Division } from "./Division";
 import { Department } from "./Department";
 import { Customer } from "./Customer";
-import { QueueTransaction } from "./QueueTrasaction";
+import { QueueTransaction } from "./QueueTransaction";
 @Entity()
 export class User {
   @PrimaryGeneratedColumn()
@@ -31,7 +31,7 @@ export class User {
   email: string;
 
   @Column()
-  phone_number: number;
+  phone_number: string;
 
   @Column()
   username: string;
@@ -45,9 +45,6 @@ export class User {
   @ManyToOne(() => Division)
   @JoinColumn({ name: "division_id" })
   division: Division;
-
-  @OneToMany(() => Department, (department) => department.user)
-  departments: Department[];
 
   @OneToMany(() => Customer, (customer) => customer.handle_by)
   handledCustomers: Customer[];

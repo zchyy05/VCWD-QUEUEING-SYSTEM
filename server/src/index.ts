@@ -3,7 +3,9 @@ import * as express from "express";
 import * as dotenv from "dotenv";
 import * as bodyParser from "body-parser";
 import * as cors from "cors";
-
+import authRoute from "./routes/auth.route";
+import departmentRoute from "./routes/department.route";
+import divisionRoute from "./routes/division.route";
 const PORT = process.env.PORT || 5050;
 
 dotenv.config();
@@ -19,6 +21,10 @@ AppDataSource.initialize()
     app.use(cors(corsOptions));
     app.use(bodyParser.json());
 
+    /*Index Routes*/
+    app.use("/auth", authRoute);
+    app.use("/department", departmentRoute);
+    app.use("/division", divisionRoute);
     app.listen(PORT, () => {
       console.log(`Server running on port:${PORT}`);
     });

@@ -10,7 +10,7 @@ import {
   JoinColumn,
 } from "typeorm";
 import { Queue } from "./Queue";
-import { QueueTransaction } from "./QueueTrasaction";
+import { QueueTransaction } from "./QueueTransaction";
 import { User } from "./User";
 import { Customer } from "./Customer";
 import { Division } from "./Division";
