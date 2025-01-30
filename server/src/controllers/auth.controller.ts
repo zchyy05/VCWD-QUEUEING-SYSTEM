@@ -76,3 +76,44 @@ export const sign_up = async (req: Request, res: Response) => {
     return res.status(500).json({ message: "Internal server error" });
   }
 };
+
+export const sign_in = async (req: Request, res: Response) => {
+  const userRepo = AppDataSource.getRepository(User);
+  const { username, password } = req.body;
+
+  try {
+    const user = await userRepo.findOne({ where: { username } });
+    if (!user) {
+      return res.status(404).json({ message: "Username doesn't exist" });
+    }
+
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
+      return res
+        .status(409)
+        .json({ message: "Username or password is incorrect" });
+    }
+
+    const generateToken = (user: User) => {
+      return jwt.sign(
+        {
+          userId: user.user_id,
+          username: user.username,
+          email: user.email,
+        },
+        process.env.JWT_SECRET!,
+        { expiresIn: "24h" }
+      );
+    };
+    const token = generateToken(user);
+
+    return res.status(200).json({
+      message: "Login Successfully",
+      token,
+      user: { id: user.user_id, email: user.email, username: user.username },
+    });
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({ message: "Internal Server error" });
+  }
+};
