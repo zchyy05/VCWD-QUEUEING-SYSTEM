@@ -3,7 +3,7 @@ import React from "react";
 const CustomInput = ({
   label,
   type = "text",
-  value,
+  value = "",
   onChange,
   leftIcon,
   rightIcon,
@@ -23,7 +23,7 @@ const CustomInput = ({
         )}
         <input
           type={type}
-          value={value}
+          value={value || ""}
           onChange={onChange}
           className={`w-full py-2 pl-10 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${inputClassName}`}
           {...props}

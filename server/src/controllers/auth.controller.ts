@@ -79,19 +79,19 @@ export const sign_up = async (req: Request, res: Response) => {
 
 export const sign_in = async (req: Request, res: Response) => {
   const userRepo = AppDataSource.getRepository(User);
-  const { username, password } = req.body;
+  const { email, password } = req.body;
 
   try {
-    const user = await userRepo.findOne({ where: { username } });
+    const user = await userRepo.findOne({ where: { email } });
     if (!user) {
-      return res.status(404).json({ message: "Username doesn't exist" });
+      return res.status(404).json({ message: "Email doesn't exist" });
     }
 
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
       return res
         .status(409)
-        .json({ message: "Username or password is incorrect" });
+        .json({ message: "Email or password is incorrect" });
     }
 
     const generateToken = (user: User) => {
@@ -115,5 +115,20 @@ export const sign_in = async (req: Request, res: Response) => {
   } catch (error) {
     console.log(error);
     return res.status(500).json({ message: "Internal Server error" });
+  }
+};
+
+export const me = async (req: Request, res: Response) => {
+  try {
+    const user = req.user;
+    return res.status(200).json({
+      user: {
+        id: user.user_id,
+        email: user.email,
+        username: user.username,
+      },
+    });
+  } catch (error) {
+    return res.status(401).json({ message: "Unauthorized" });
   }
 };
