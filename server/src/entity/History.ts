@@ -40,7 +40,7 @@ export class History {
 
   @ManyToOne(() => QueueTransaction)
   @JoinColumn({ name: "transaction_id" })
-  transaction_id: QueueTransaction;
+  transaction: QueueTransaction;
 
   @ManyToOne(() => Queue)
   @JoinColumn({ name: "queue_id" })

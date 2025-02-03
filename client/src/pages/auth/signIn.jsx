@@ -38,7 +38,7 @@ const SignIn = () => {
           </p>
           <Link
             to="/auth/signup"
-            className="font-rubik px-12 py-4 text-lg bg-white rounded-xl text-primary 
+            className="font-rubik px-12 py-4 text-xl bg-white rounded-xl text-primary 
                      hover:bg-opacity-90 transition-all duration-300 shadow-lg
                      hover:shadow-xl transform hover:-translate-y-1"
           >

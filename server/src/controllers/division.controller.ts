@@ -28,14 +28,31 @@ export const createDivision = async (req: Request, res: Response) => {
     const newDivision = divisionRepo.create({ division_name, department });
     await divisionRepo.save(newDivision);
 
-    res
-      .status(201)
-      .json({
-        message: "Division created successfully",
-        division: newDivision,
-      });
+    res.status(201).json({
+      message: "Division created successfully",
+      division: newDivision,
+    });
   } catch (error) {
     console.error("Error creating division:", error);
     res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+export const getDivision = async (req: Request, res: Response) => {
+  const divisionRepo = AppDataSource.getRepository(Division);
+  try {
+    const divisions = await divisionRepo.find({
+      relations: {
+        department: true,
+      },
+    });
+
+    return res.status(200).json({
+      message: "Divisions retrieved successfully",
+      divisions,
+    });
+  } catch (error) {
+    console.error("Error retrieving divisions:", error);
+    return res.status(500).json({ message: "Internal server error" });
   }
 };

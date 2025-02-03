@@ -29,13 +29,13 @@ export class Queue {
 
   @ManyToOne(() => Customer)
   @JoinColumn({ name: "customer_id" })
-  customer_id: Customer;
+  customer: Customer; // Changed from customer_id
 
   @ManyToOne(() => Division)
   @JoinColumn({ name: "division_id" })
-  division_id: Division;
+  division: Division; // Changed from division_id
 
-  @OneToMany(() => QueueTransaction, (transaction) => transaction.queue_id)
+  @OneToMany(() => QueueTransaction, (transaction) => transaction.queue)
   transactions: QueueTransaction[];
 
   @CreateDateColumn()

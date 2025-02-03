@@ -30,10 +30,10 @@ export class Customer {
   @JoinColumn({ name: "handle_by" })
   handle_by: User;
 
-  @OneToMany(() => Queue, (queue) => queue.customer_id)
+  @OneToMany(() => Queue, (queue) => queue.customer)
   queues: Queue[];
 
-  @OneToMany(() => QueueTransaction, (transaction) => transaction.customer_id)
+  @OneToMany(() => QueueTransaction, (transaction) => transaction.customer)
   transactions: QueueTransaction[];
 
   @CreateDateColumn()

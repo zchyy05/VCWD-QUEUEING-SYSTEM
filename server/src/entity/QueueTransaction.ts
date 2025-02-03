@@ -33,16 +33,16 @@ export class QueueTransaction {
 
   @ManyToOne(() => Queue)
   @JoinColumn({ name: "queue_id" })
-  queue_id: Queue;
+  queue: Queue; // Changed from queue_id
 
   @ManyToOne(() => Customer)
   @JoinColumn({ name: "customer_id" })
-  customer_id: Customer;
+  customer: Customer; // Changed from customer_id
 
   @ManyToOne(() => User)
   @JoinColumn({ name: "assigned_to" })
   assigned_to: User;
 
-  @OneToMany(() => History, (history) => history.transaction_id)
+  @OneToMany(() => History, (history) => history.transaction)
   histories: History[];
 }

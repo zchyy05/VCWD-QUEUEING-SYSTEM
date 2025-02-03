@@ -19,8 +19,7 @@ export class Department {
   department_name: string;
 
   @OneToMany(() => Division, (division) => division.department)
-  @JoinColumn({ name: "division_id" })
-  division: Division[];
+  divisions: Division[];
 
   @CreateDateColumn()
   created_at: Date;

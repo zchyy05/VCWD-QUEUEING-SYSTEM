@@ -24,7 +24,7 @@ export class Division {
   @Column({ nullable: true })
   qr_code: string;
 
-  @ManyToOne(() => Department, (department) => department.division, {
+  @ManyToOne(() => Department, (department) => department.divisions, {
     onDelete: "CASCADE",
   })
   @JoinColumn({ name: "department_id" })
@@ -33,7 +33,7 @@ export class Division {
   @OneToMany(() => User, (user) => user.division)
   users: User[];
 
-  @OneToMany(() => Queue, (queue) => queue.division_id)
+  @OneToMany(() => Queue, (queue) => queue.division)
   queues: Queue[];
 
   @CreateDateColumn()
