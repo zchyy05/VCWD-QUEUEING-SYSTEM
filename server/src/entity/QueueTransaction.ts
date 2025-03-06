@@ -33,16 +33,21 @@ export class QueueTransaction {
 
   @ManyToOne(() => Queue)
   @JoinColumn({ name: "queue_id" })
-  queue: Queue; // Changed from queue_id
+  queue: Queue;
 
   @ManyToOne(() => Customer)
   @JoinColumn({ name: "customer_id" })
-  customer: Customer; // Changed from customer_id
+  customer: Customer;
 
-  @ManyToOne(() => User)
+  @ManyToOne(() => User, (user) => user.transactions, {
+    onDelete: "CASCADE",
+  })
   @JoinColumn({ name: "assigned_to" })
   assigned_to: User;
 
-  @OneToMany(() => History, (history) => history.transaction)
+  @OneToMany(() => History, (history) => history.transaction, {
+    cascade: true,
+    onDelete: "CASCADE",
+  })
   histories: History[];
 }

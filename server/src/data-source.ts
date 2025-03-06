@@ -8,7 +8,8 @@ import { Division } from "./entity/Division";
 import { Priorities } from "./entity/Priorities";
 import { Queue } from "./entity/Queue";
 import { QueueTransaction } from "./entity/QueueTransaction";
-
+import { Terminal } from "./entity/Terminal";
+import { Video } from "./entity/Videos";
 export const AppDataSource = new DataSource({
   type: "postgres",
   host: "localhost",
@@ -27,6 +28,8 @@ export const AppDataSource = new DataSource({
     Priorities,
     Queue,
     QueueTransaction,
+    Terminal,
+    Video,
   ],
   migrations: [],
   subscribers: [],

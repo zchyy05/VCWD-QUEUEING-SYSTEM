@@ -1,38 +1,64 @@
 import React, { useState } from "react";
 import { X } from "lucide-react";
+import { createQueue } from "../services/queueService";
+import SwitchComponent from "./uiComponents/switchComponent";
+import { useQueuePrinting } from "../hooks/useQueuePrinting";
 
-const CustomerModal = ({ isOpen, onClose, onSubmit, selectedDivision }) => {
+const CustomerModal = ({ isOpen, onClose, onQueueAdded, selectedDivision }) => {
   const [formData, setFormData] = useState({
     customerName: "",
-    phoneNumber: "",
+    accountNumber: "",
+    isPriority: false,
   });
-
+  const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState({});
+  const { printQueue } = useQueuePrinting();
 
   const validateForm = () => {
     const newErrors = {};
-
-    if (!formData.customerName.trim()) {
-      newErrors.customerName = "Customer name is required";
-    }
-
-    if (!formData.phoneNumber.trim()) {
-      newErrors.phoneNumber = "Phone number is required";
-    } else if (!/^\d{11}$/.test(formData.phoneNumber)) {
-      newErrors.phoneNumber = "Please enter a valid 11-digit phone number";
-    }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!validateForm()) {
+      return;
+    }
 
-    if (validateForm()) {
-      onSubmit({ ...formData, division: selectedDivision });
-      setFormData({ customerName: "", phoneNumber: "" });
+    try {
+      setIsLoading(true);
+      setError("");
+
+      const queueData = {
+        customer_name: formData.customerName || null,
+        account_number: formData.accountNumber || null,
+        division_id: selectedDivision.division_id,
+        priority_type: formData.isPriority ? "priority" : "regular",
+      };
+
+      const response = await createQueue(queueData);
+      console.log("Queue Response:", response.queue);
+
+      printQueue(response.queue);
+
+      setFormData({
+        customerName: "",
+        accountNumber: "",
+        isPriority: false,
+      });
+
+      if (onQueueAdded) {
+        onQueueAdded();
+      }
+
       onClose();
+    } catch (error) {
+      setError(error.message || "Failed to create queue");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -48,6 +74,13 @@ const CustomerModal = ({ isOpen, onClose, onSubmit, selectedDivision }) => {
         [name]: "",
       }));
     }
+  };
+
+  const handlePriorityToggle = (checked) => {
+    setFormData((prev) => ({
+      ...prev,
+      isPriority: checked,
+    }));
   };
 
   if (!isOpen) return null;
@@ -67,13 +100,18 @@ const CustomerModal = ({ isOpen, onClose, onSubmit, selectedDivision }) => {
 
         <div className="mb-6">
           <h2 className="text-2xl font-rubik font-medium text-center text-blue-600">
-            {console.log(selectedDivision)}
             {selectedDivision?.division_name || "Customer Information"}
           </h2>
           <p className="text-center text-gray-600 mt-2 font-rubik">
-            Please fill in your details
+            Please fill in your details (optional)
           </p>
         </div>
+
+        {error && (
+          <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-lg">
+            {error}
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -81,7 +119,7 @@ const CustomerModal = ({ isOpen, onClose, onSubmit, selectedDivision }) => {
               htmlFor="customerName"
               className="block text-sm font-medium text-gray-700 mb-1 font-rubik"
             >
-              Customer Name
+              Customer Name (Optional)
             </label>
             <input
               type="text"
@@ -103,35 +141,42 @@ const CustomerModal = ({ isOpen, onClose, onSubmit, selectedDivision }) => {
 
           <div>
             <label
-              htmlFor="phoneNumber"
+              htmlFor="accountNumber"
               className="block text-sm font-medium text-gray-700 mb-1 font-rubik"
             >
-              Phone Number
+              Account Number (Optional)
             </label>
             <input
-              type="tel"
-              id="phoneNumber"
-              name="phoneNumber"
-              value={formData.phoneNumber}
+              type="text"
+              id="accountNumber"
+              name="accountNumber"
+              value={formData.accountNumber}
               onChange={handleChange}
               className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-rubik ${
-                errors.phoneNumber ? "border-red-500" : "border-gray-300"
+                errors.accountNumber ? "border-red-500" : "border-gray-300"
               }`}
-              placeholder="Enter 11-digit phone number"
-              maxLength="11"
+              placeholder="Enter account number"
             />
-            {errors.phoneNumber && (
+            {errors.accountNumber && (
               <p className="mt-1 text-sm text-red-500 font-rubik">
-                {errors.phoneNumber}
+                {errors.accountNumber}
               </p>
             )}
           </div>
 
+          <div>
+            <SwitchComponent
+              checked={formData.isPriority}
+              onChange={handlePriorityToggle}
+            />
+          </div>
+
           <button
             type="submit"
-            className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors duration-200 font-medium font-rubik"
+            disabled={isLoading}
+            className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors duration-200 font-medium font-rubik disabled:opacity-50"
           >
-            Submit
+            {isLoading ? "Creating..." : "Submit"}
           </button>
         </form>
       </div>

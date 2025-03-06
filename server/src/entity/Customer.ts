@@ -4,7 +4,6 @@ import {
   Column,
   CreateDateColumn,
   UpdateDateColumn,
-  PrimaryColumn,
   ManyToOne,
   JoinColumn,
   OneToMany,
@@ -12,18 +11,19 @@ import {
 import { User } from "./User";
 import { QueueTransaction } from "./QueueTransaction";
 import { Queue } from "./Queue";
+
 @Entity()
 export class Customer {
   @PrimaryGeneratedColumn()
   customer_id: number;
 
-  @Column()
+  @Column({ nullable: true })
   customer_name: string;
 
-  @Column()
-  phone_number: string;
+  @Column({ nullable: true })
+  account_number: string;
 
-  @Column()
+  @Column({ default: "regular" })
   priority_type: string;
 
   @ManyToOne(() => User)

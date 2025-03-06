@@ -5,7 +5,7 @@ import CustomInput from "../../components/uiComponents/customInput";
 import CustomButton from "../../components/uiComponents/customButton";
 import { Mail, Lock, Eye, EyeOff } from "lucide-react";
 import { useAuthContext } from "../../context/authContext";
-
+import { Building2, ChevronLeft, QrCode } from "lucide-react";
 const SignIn = () => {
   const { error, signIn, loading, user } = useAuthContext();
   const navigate = useNavigate();
@@ -55,7 +55,7 @@ const SignIn = () => {
     }
 
     setErrors(newErrors);
-    setShowError(true); // Show error when validation fails
+    setShowError(true);
     return isValid;
   };
 
@@ -67,7 +67,12 @@ const SignIn = () => {
     if (validateForm()) {
       try {
         await signIn(data.email, data.password);
-        navigate("/dashboard");
+
+        if (user?.role === "admin") {
+          navigate("/admin");
+        } else {
+          navigate("/terminals");
+        }
       } catch (error) {
         console.error("Login failed:", error);
       }
@@ -76,7 +81,11 @@ const SignIn = () => {
 
   useEffect(() => {
     if (user) {
-      navigate("/dashboard");
+      if (user.role === "admin") {
+        navigate("/admin");
+      } else {
+        navigate("/terminals");
+      }
     }
   }, [user, navigate]);
 
@@ -84,7 +93,18 @@ const SignIn = () => {
     <div className="flex h-screen overflow-hidden">
       <div className="hidden lg:flex w-1/2 relative">
         <div className="absolute inset-0 bg-gradient-to-b from-primary to-secondary" />
+
         <div className="relative flex flex-col items-center justify-center w-full p-12 text-white">
+          <div className="flex justify-start items-start py-4 w-full">
+            <Link
+              to="/"
+              className="text-blue-100 hover:text-white font-medium px-4 py-2 rounded-lg transition-colors duration-200 flex items-center gap-2"
+            >
+              <ChevronLeft className="w-4 h-4" />
+              <span>Back</span>
+            </Link>
+          </div>
+
           <div className="mb-8 transform hover:scale-105 transition-transform duration-300">
             <img
               src={images.logo}
@@ -170,7 +190,7 @@ const SignIn = () => {
             <CustomButton
               onClick={handleLogin}
               disabled={loading}
-              className={`w-full py-3 bg-secondary text-primary font-medium rounded-lg
+              className={`w-full py-3 bg-primary text-white font-medium rounded-lg
                 transform hover:-translate-y-0.5 transition-all duration-300
                 hover:shadow-lg active:translate-y-0 active:shadow-md
                 ${loading ? "opacity-70 cursor-not-allowed" : ""}`}
@@ -182,7 +202,7 @@ const SignIn = () => {
               <p className="text-gray-600 mb-4">Don't have an account?</p>
               <Link
                 to="/auth/signup"
-                className="font-rubik px-8 py-3  text-white rounded-lg
+                className="font-rubik px-8 py-3 bg-secondary text-white rounded-lg
                           hover:bg-opacity-90 transition-all duration-300"
               >
                 Sign Up
