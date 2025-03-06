@@ -1,8 +1,12 @@
 import { Request, Response } from "express";
 import { AppDataSource } from "../data-source";
 import { Video } from "../entity/Videos";
+import * as fs from "fs";
+import * as path from "path";
+import { getVideoUrl } from "../config/multer";
 
 const videoRepository = AppDataSource.getRepository(Video);
+const uploadDir = path.join(__dirname, "../uploads");
 
 export const getVideos = async (req: Request, res: Response) => {
   try {
@@ -18,13 +22,68 @@ export const getVideos = async (req: Request, res: Response) => {
   }
 };
 
+export const streamVideo = async (req: Request, res: Response) => {
+  try {
+    const filename = req.params.filename;
+    const filepath = path.join(__dirname, "../uploads", filename);
+
+    // Check if file exists
+    if (!fs.existsSync(filepath)) {
+      console.error(`File not found: ${filepath}`);
+      return res.status(404).json({ message: "Video not found" });
+    }
+
+    const stat = fs.statSync(filepath);
+    const fileSize = stat.size;
+    const range = req.headers.range;
+
+    // Handle range requests (important for video streaming)
+    if (range) {
+      const parts = range.replace(/bytes=/, "").split("-");
+      const start = parseInt(parts[0], 10);
+      const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
+      const chunksize = end - start + 1;
+      const file = fs.createReadStream(filepath, { start, end });
+
+      res.writeHead(206, {
+        "Content-Range": `bytes ${start}-${end}/${fileSize}`,
+        "Accept-Ranges": "bytes",
+        "Content-Length": chunksize,
+        "Content-Type": "video/mp4",
+      });
+
+      file.pipe(res);
+    } else {
+      // Handle non-range requests
+      res.writeHead(200, {
+        "Content-Length": fileSize,
+        "Content-Type": "video/mp4",
+      });
+
+      fs.createReadStream(filepath).pipe(res);
+    }
+  } catch (error) {
+    console.error("Error streaming video:", error);
+    res.status(500).json({ message: "Error streaming video" });
+  }
+};
+
 export const addVideo = async (req: Request, res: Response) => {
   try {
-    const { title, youtubeUrl } = req.body;
+    const { title } = req.body;
+    const file = req.file;
+
+    if (!file) {
+      return res.status(400).json({ message: "No video file uploaded" });
+    }
 
     const video = videoRepository.create({
       title,
-      youtubeUrl,
+      filename: file.filename,
+      originalFilename: file.originalname,
+      mimeType: file.mimetype,
+      fileSize: file.size,
+      videoUrl: getVideoUrl(req, file.filename),
       isActive: false,
       sortOrder: 0,
     });
@@ -32,7 +91,6 @@ export const addVideo = async (req: Request, res: Response) => {
     const savedVideo = await videoRepository.save(video);
 
     const videoCount = await videoRepository.count();
-
     savedVideo.sortOrder = videoCount;
     await videoRepository.save(savedVideo);
 
@@ -46,7 +104,8 @@ export const addVideo = async (req: Request, res: Response) => {
 export const updateVideo = async (req: Request, res: Response) => {
   try {
     const id = req.params.id;
-    const { title, youtubeUrl, isActive, sortOrder } = req.body;
+    const { title, isActive, sortOrder } = req.body;
+    const file = req.file;
 
     const video = await videoRepository.findOne({ where: { video_id: id } });
 
@@ -54,12 +113,28 @@ export const updateVideo = async (req: Request, res: Response) => {
       return res.status(404).json({ message: "Video not found" });
     }
 
-    video.title = title;
-    video.youtubeUrl = youtubeUrl;
-
-    // Only update these if they're provided
+    // Update basic properties
+    if (title) video.title = title;
     if (typeof isActive === "boolean") video.isActive = isActive;
     if (typeof sortOrder === "number") video.sortOrder = sortOrder;
+
+    // If new file is uploaded, update file-related properties and delete old file
+    if (file) {
+      // Delete old file if it exists
+      if (video.filename) {
+        const oldFilePath = path.join(uploadDir, video.filename);
+        if (fs.existsSync(oldFilePath)) {
+          fs.unlinkSync(oldFilePath);
+        }
+      }
+
+      // Update with new file info
+      video.filename = file.filename;
+      video.originalFilename = file.originalname;
+      video.mimeType = file.mimetype;
+      video.fileSize = file.size;
+      video.videoUrl = getVideoUrl(req, file.filename);
+    }
 
     await videoRepository.save(video);
     res.json(video);
@@ -73,13 +148,13 @@ export const getActiveVideo = async (req: Request, res: Response) => {
   try {
     const activeVideo = await videoRepository.findOne({
       where: { isActive: true },
-      order: { sortOrder: "ASC" }, // Add order condition
+      order: { sortOrder: "ASC" },
     });
 
     if (!activeVideo) {
       // If no active video, get the first one by sort order
       const firstVideo = await videoRepository.findOne({
-        where: {}, // Add empty where clause
+        where: {},
         order: { sortOrder: "ASC" },
       });
 
@@ -143,9 +218,8 @@ export const getNextVideo = async (req: Request, res: Response) => {
 
     if (!nextVideo) {
       // If no next video, get the first one (loop back)
-      // Modified this part to include a where clause
       const firstVideo = await videoRepository.findOne({
-        where: {}, // Empty where clause to match all records
+        where: {},
         order: { sortOrder: "ASC" },
       });
 
@@ -163,10 +237,9 @@ export const getNextVideo = async (req: Request, res: Response) => {
   }
 };
 
-// Helper endpoint to update video order
 export const updateVideoOrder = async (req: Request, res: Response) => {
   try {
-    const { videos } = req.body; // Expect array of { video_id, sortOrder }
+    const { videos } = req.body;
 
     for (const item of videos) {
       await videoRepository.update(item.video_id, {
@@ -193,6 +266,14 @@ export const deleteVideo = async (req: Request, res: Response) => {
 
     if (!video) {
       return res.status(404).json({ message: "Video not found" });
+    }
+
+    // Delete file from filesystem if it exists
+    if (video.filename) {
+      const filePath = path.join(uploadDir, video.filename);
+      if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
+      }
     }
 
     await videoRepository.remove(video);

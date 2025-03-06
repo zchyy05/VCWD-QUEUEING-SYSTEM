@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import AdminLayout from "./adminLayout";
 import { useVideos } from "../../hooks/useVideos";
 import {
@@ -11,43 +11,8 @@ import {
   Video,
 } from "lucide-react";
 
-const convertToEmbedUrl = (url) => {
-  if (!url) return "";
-  try {
-    const urlObj = new URL(url);
-
-    // Handle youtube.com URLs
-    if (
-      urlObj.hostname === "www.youtube.com" ||
-      urlObj.hostname === "youtube.com"
-    ) {
-      const videoId = urlObj.searchParams.get("v");
-      if (videoId) {
-        // Return clean embed URL without any extra parameters
-        return `https://www.youtube.com/embed/${videoId}`;
-      }
-    }
-
-    // Handle youtu.be URLs
-    if (urlObj.hostname === "youtu.be") {
-      const videoId = urlObj.pathname.slice(1);
-      if (videoId) {
-        return `https://www.youtube.com/embed/${videoId}`;
-      }
-    }
-
-    if (url.includes("youtube.com/embed/")) {
-      return url;
-    }
-
-    return "";
-  } catch (error) {
-    console.error("Error converting URL:", error);
-    return "";
-  }
-};
-
 const AdminVideos = () => {
+  const api_url = import.meta.env.VITE_API_URL;
   const {
     videos,
     loading,
@@ -61,8 +26,9 @@ const AdminVideos = () => {
   const [editingVideo, setEditingVideo] = useState(null);
   const [formData, setFormData] = useState({
     title: "",
-    youtubeUrl: "",
   });
+  const [videoFile, setVideoFile] = useState(null);
+  const fileInputRef = useRef(null);
 
   const [errors, setErrors] = useState({});
   const stats = [
@@ -85,15 +51,21 @@ const AdminVideos = () => {
     },
   ];
 
+  // Generate stream URL directly from the streaming endpoint
+  const getStreamUrl = (filename) => {
+    if (!filename) return null;
+    return `${api_url}/entertainment/videos/stream/${filename}`;
+  };
+
   const validateForm = () => {
     const newErrors = {};
     if (!formData.title.trim()) {
       newErrors.title = "Title is required";
     }
-    if (!formData.youtubeUrl.trim()) {
-      newErrors.youtubeUrl = "YouTube URL is required";
-    } else if (!formData.youtubeUrl.includes("youtube.com/embed/")) {
-      newErrors.youtubeUrl = "Please enter a valid YouTube URL";
+
+    // Only require video file for new uploads
+    if (!editingVideo && !videoFile) {
+      newErrors.videoFile = "Video file is required";
     }
 
     setErrors(newErrors);
@@ -104,14 +76,26 @@ const AdminVideos = () => {
     e.preventDefault();
     if (validateForm()) {
       try {
+        // Create FormData object for file upload
+        const formDataToSend = new FormData();
+        formDataToSend.append("title", formData.title);
+
+        if (videoFile) {
+          formDataToSend.append("video", videoFile);
+        }
+
         if (editingVideo) {
-          await updateVideo(editingVideo.video_id, formData);
+          await updateVideo(editingVideo.video_id, formDataToSend);
         } else {
-          await createVideo(formData);
+          await createVideo(formDataToSend);
         }
         setIsModalOpen(false);
         setEditingVideo(null);
-        setFormData({ title: "", youtubeUrl: "" });
+        setFormData({ title: "" });
+        setVideoFile(null);
+        if (fileInputRef.current) {
+          fileInputRef.current.value = "";
+        }
       } catch (err) {
         console.error("Error saving video:", err);
       }
@@ -128,6 +112,44 @@ const AdminVideos = () => {
     }
   };
 
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      // Validate file type
+      const acceptedTypes = [
+        "video/mp4",
+        "video/webm",
+        "video/ogg",
+        "video/quicktime",
+      ];
+      if (!acceptedTypes.includes(file.type)) {
+        setErrors({
+          ...errors,
+          videoFile:
+            "Please upload a valid video file (MP4, WebM, OGG, or QuickTime)",
+        });
+        e.target.value = "";
+        return;
+      }
+
+      // Validate file size (100MB limit)
+      if (file.size > 100 * 1024 * 1024) {
+        setErrors({
+          ...errors,
+          videoFile: "File size should be less than 100MB",
+        });
+        e.target.value = "";
+        return;
+      }
+
+      setVideoFile(file);
+      setErrors({
+        ...errors,
+        videoFile: null,
+      });
+    }
+  };
+
   return (
     <AdminLayout>
       <div className="space-y-6">
@@ -135,7 +157,13 @@ const AdminVideos = () => {
           <h1 className="text-2xl font-bold text-gray-900">Video Management</h1>
           <div className="flex space-x-3">
             <button
-              onClick={() => setIsModalOpen(true)}
+              onClick={() => {
+                setFormData({ title: "" });
+                setVideoFile(null);
+                setEditingVideo(null);
+                setErrors({});
+                setIsModalOpen(true);
+              }}
               className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 flex items-center gap-2"
             >
               <Plus className="w-5 h-5" />
@@ -204,18 +232,34 @@ const AdminVideos = () => {
                     <tr key={video.video_id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="w-40 h-24 bg-gray-100 rounded-lg overflow-hidden">
-                          <iframe
-                            src={convertToEmbedUrl(video.youtubeUrl)}
-                            className="w-full h-full"
-                            frameBorder="0"
-                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                            allowFullScreen
-                          />
+                          {video.filename ? (
+                            <video
+                              src={getStreamUrl(video.filename)}
+                              className="w-full h-full object-cover"
+                              controlsList="nodownload nofullscreen noremoteplayback"
+                              controls
+                              muted
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center">
+                              <Video className="w-8 h-8 text-gray-400" />
+                            </div>
+                          )}
                         </div>
                       </td>
                       <td className="px-6 py-4">
                         <div className="text-sm text-gray-900">
                           {video.title}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          {video.originalFilename && (
+                            <span title={video.originalFilename}>
+                              {video.originalFilename.length > 20
+                                ? video.originalFilename.substring(0, 20) +
+                                  "..."
+                                : video.originalFilename}
+                            </span>
+                          )}
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
@@ -261,8 +305,9 @@ const AdminVideos = () => {
                             setEditingVideo(video);
                             setFormData({
                               title: video.title,
-                              youtubeUrl: video.youtubeUrl,
                             });
+                            setVideoFile(null);
+                            setErrors({});
                             setIsModalOpen(true);
                           }}
                           className="text-primary hover:text-primary/80 mx-2"
@@ -299,7 +344,9 @@ const AdminVideos = () => {
                 onClick={() => {
                   setIsModalOpen(false);
                   setEditingVideo(null);
-                  setFormData({ title: "", youtubeUrl: "" });
+                  setFormData({ title: "" });
+                  setVideoFile(null);
+                  setErrors({});
                 }}
                 className="text-gray-500 hover:text-gray-700"
               >
@@ -307,44 +354,52 @@ const AdminVideos = () => {
               </button>
             </div>
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Title*
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.title}
-                    onChange={(e) =>
-                      setFormData({ ...formData, title: e.target.value })
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                    required
-                  />
-                  {errors.title && (
-                    <p className="text-red-500 text-xs mt-1">{errors.title}</p>
-                  )}
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    YouTube URL*
-                  </label>
-                  <input
-                    type="url"
-                    value={formData.youtubeUrl}
-                    onChange={(e) => {
-                      const embedUrl = convertToEmbedUrl(e.target.value);
-                      setFormData({ ...formData, youtubeUrl: embedUrl });
-                    }}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                    required
-                  />
-                  {errors.youtubeUrl && (
-                    <p className="text-red-500 text-xs mt-1">
-                      {errors.youtubeUrl}
-                    </p>
-                  )}
-                </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Title*
+                </label>
+                <input
+                  type="text"
+                  value={formData.title}
+                  onChange={(e) =>
+                    setFormData({ ...formData, title: e.target.value })
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                  required
+                />
+                {errors.title && (
+                  <p className="text-red-500 text-xs mt-1">{errors.title}</p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Video File{" "}
+                  {editingVideo ? "(Leave empty to keep existing file)" : "*"}
+                </label>
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  accept="video/mp4,video/webm,video/ogg,video/quicktime"
+                  onChange={handleFileChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+                {videoFile && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    Selected file: {videoFile.name} (
+                    {(videoFile.size / (1024 * 1024)).toFixed(2)} MB)
+                  </p>
+                )}
+                {errors.videoFile && (
+                  <p className="text-red-500 text-xs mt-1">
+                    {errors.videoFile}
+                  </p>
+                )}
+                {editingVideo && editingVideo.originalFilename && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    Current file: {editingVideo.originalFilename}
+                  </p>
+                )}
               </div>
 
               <div className="flex justify-end space-x-3 mt-6">
@@ -353,7 +408,9 @@ const AdminVideos = () => {
                   onClick={() => {
                     setIsModalOpen(false);
                     setEditingVideo(null);
-                    setFormData({ title: "", youtubeUrl: "" });
+                    setFormData({ title: "" });
+                    setVideoFile(null);
+                    setErrors({});
                   }}
                   className="px-4 py-2 text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200"
                 >

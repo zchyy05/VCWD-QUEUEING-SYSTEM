@@ -4,6 +4,7 @@ import * as dotenv from "dotenv";
 import * as bodyParser from "body-parser";
 import * as cors from "cors";
 import * as cookieParser from "cookie-parser";
+import * as path from "path";
 import { cleanupInactiveSessions } from "./utils/cleanUpActiveSession";
 import { tokenExpirationCheck } from "./middlewares/tokenExpirationCheck";
 import { createQueueCleanupCronJob } from "./helpers/cronHelper";
@@ -48,7 +49,7 @@ const startServer = async () => {
     app.use(bodyParser.json());
     app.use(cookieParser());
     app.use(bodyParser.urlencoded({ extended: true }));
-
+    app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
     app.get("/health", (_, res) => res.status(200).json({ status: "ok" }));
 
     await cleanupInactiveSessions();

@@ -12,9 +12,6 @@ export const useVideos = () => {
   const axiosInstance = axios.create({
     baseURL: api_url,
     withCredentials: true,
-    headers: {
-      "Content-Type": "application/json",
-    },
   });
 
   axiosInstance.interceptors.request.use(
@@ -51,11 +48,24 @@ export const useVideos = () => {
     }
   );
 
+  // Helper function to get stream URL
+  const getStreamUrl = (filename) => {
+    if (!filename) return null;
+    return `${api_url}/entertainment/videos/stream/${filename}`;
+  };
+
   const fetchVideos = async () => {
     setLoading(true);
     try {
       const response = await axiosInstance.get("/entertainment/videos");
-      setVideos(response.data);
+
+      // Ensure each video has the proper streamUrl
+      const videosWithStream = response.data.map((video) => ({
+        ...video,
+        videoUrl: video.filename ? getStreamUrl(video.filename) : null,
+      }));
+
+      setVideos(videosWithStream);
       setError(null);
     } catch (err) {
       setError(err.response?.data?.message || "Error fetching videos");
@@ -68,8 +78,18 @@ export const useVideos = () => {
   const fetchActiveVideo = async () => {
     try {
       const response = await axiosInstance.get("/entertainment/videos/active");
-      setActiveVideo(response.data);
-      return response.data;
+      if (response.data) {
+        // Add proper stream URL to active video
+        const videoWithStream = {
+          ...response.data,
+          videoUrl: response.data.filename
+            ? getStreamUrl(response.data.filename)
+            : null,
+        };
+        setActiveVideo(videoWithStream);
+        return videoWithStream;
+      }
+      return null;
     } catch (err) {
       console.error("Error fetching active video:", err);
       return null;
@@ -108,14 +128,12 @@ export const useVideos = () => {
   const updateVideo = async (id, videoData) => {
     setLoading(true);
     try {
+      // For FormData, axios will set the correct content type
       const response = await axiosInstance.put(
         `/entertainment/videos/${id}`,
         videoData
       );
       await fetchVideos();
-      if (videoData.isActive) {
-        await fetchActiveVideo();
-      }
       return response.data;
     } catch (err) {
       setError(err.response?.data?.message || "Error updating video");
@@ -145,7 +163,14 @@ export const useVideos = () => {
     setLoading(true);
     try {
       const response = await axiosInstance.get(`/entertainment/videos/${id}`);
-      return response.data;
+      // Add stream URL to video
+      const videoWithStream = {
+        ...response.data,
+        videoUrl: response.data.filename
+          ? getStreamUrl(response.data.filename)
+          : null,
+      };
+      return videoWithStream;
     } catch (err) {
       setError(err.response?.data?.message || "Error fetching video");
       throw err;
@@ -154,15 +179,24 @@ export const useVideos = () => {
     }
   };
 
-  // New methods for video playback control
+  // Video playback control methods
   const setActive = async (id) => {
     try {
       const response = await axiosInstance.put(
         `/entertainment/videos/${id}/activate`
       );
-      setActiveVideo(response.data);
+
+      // Add stream URL to active video
+      const videoWithStream = {
+        ...response.data,
+        videoUrl: response.data.filename
+          ? getStreamUrl(response.data.filename)
+          : null,
+      };
+
+      setActiveVideo(videoWithStream);
       await fetchVideos();
-      return response.data;
+      return videoWithStream;
     } catch (err) {
       console.error("Error setting active video:", err);
       throw err;
@@ -174,7 +208,16 @@ export const useVideos = () => {
       const response = await axiosInstance.get(
         `/entertainment/videos/${currentId}/next`
       );
-      return response.data;
+
+      // Add stream URL to next video
+      const videoWithStream = {
+        ...response.data,
+        videoUrl: response.data.filename
+          ? getStreamUrl(response.data.filename)
+          : null,
+      };
+
+      return videoWithStream;
     } catch (err) {
       console.error("Error getting next video:", err);
       throw err;

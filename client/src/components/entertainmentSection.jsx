@@ -9,15 +9,21 @@ const EntertainmentSection = ({ theme, compact = false }) => {
     useState(false);
   const { isAnnouncing } = useAnnouncement();
   const { activeVideo, playNextVideo } = useVideos();
-  const iframeRef = useRef(null);
+  const videoRef = useRef(null);
+  const api_url = import.meta.env.VITE_API_URL;
 
-  // Update video URL when active video changes
+  // Update video playing state when active video changes
   useEffect(() => {
-    if (activeVideo?.youtubeUrl) {
+    if (activeVideo?.filename) {
       // Reset playing state when video changes
       setIsPlaying(false);
+
+      if (videoRef.current) {
+        videoRef.current.pause();
+        videoRef.current.load();
+      }
     }
-  }, [activeVideo?.youtubeUrl]);
+  }, [activeVideo?.filename]);
 
   // Handle announcement state changes
   useEffect(() => {
@@ -25,38 +31,54 @@ const EntertainmentSection = ({ theme, compact = false }) => {
       // Store current playing state
       setWasPlayingBeforeAnnouncement(isPlaying);
       // Pause video if it's playing
+      if (videoRef.current && isPlaying) {
+        videoRef.current.pause();
+      }
       setIsPlaying(false);
     } else {
       // Resume video if it was playing before announcement
-      if (wasPlayingBeforeAnnouncement) {
+      if (wasPlayingBeforeAnnouncement && videoRef.current) {
+        videoRef.current.play().catch((e) => {
+          console.error("Error playing video:", e);
+        });
         setIsPlaying(true);
       }
     }
   }, [isAnnouncing]);
 
   const handlePlayPause = () => {
-    setIsPlaying(!isPlaying);
-    setWasPlayingBeforeAnnouncement(!isPlaying);
+    if (videoRef.current) {
+      if (isPlaying) {
+        videoRef.current.pause();
+      } else {
+        videoRef.current.play().catch((e) => {
+          console.error("Error playing video:", e);
+        });
+      }
+      setIsPlaying(!isPlaying);
+      setWasPlayingBeforeAnnouncement(!isPlaying);
+    }
   };
 
   const handleNextVideo = async () => {
     await playNextVideo();
-    if (isPlaying && !isAnnouncing) {
-      setIsPlaying(true);
+    if (isPlaying && !isAnnouncing && videoRef.current) {
+      // Wait for new video to load, then play
+      setTimeout(() => {
+        if (videoRef.current) {
+          videoRef.current.play().catch((e) => {
+            console.error("Error playing next video:", e);
+          });
+          setIsPlaying(true);
+        }
+      }, 300);
     }
   };
 
-  // Construct YouTube URL with appropriate parameters
-  const getYouTubeUrl = () => {
-    if (!activeVideo?.youtubeUrl) return "";
-    const baseUrl = activeVideo.youtubeUrl;
-    const params = new URLSearchParams({
-      autoplay: isPlaying ? "1" : "0",
-      enablejsapi: "1",
-      controls: "1",
-      modestbranding: "1",
-    });
-    return `${baseUrl}${baseUrl.includes("?") ? "&" : "?"}${params.toString()}`;
+  // Generate stream URL directly from the streaming endpoint
+  const getStreamUrl = (filename) => {
+    if (!filename) return null;
+    return `${api_url}/entertainment/videos/stream/${filename}`;
   };
 
   return (
@@ -99,21 +121,36 @@ const EntertainmentSection = ({ theme, compact = false }) => {
       <div
         className="relative w-full"
         style={{
-          // Fixed height instead of percentage-based padding
           height: "220px",
           maxHeight: "220px",
         }}
       >
-        {activeVideo ? (
-          <iframe
-            ref={iframeRef}
-            className="absolute top-0 left-0 w-full h-full"
-            src={getYouTubeUrl()}
-            title={activeVideo.title}
-            frameBorder="0"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
-          />
+        {activeVideo?.filename ? (
+          <video
+            ref={videoRef}
+            className="absolute top-0 left-0 w-full h-full object-contain bg-black"
+            preload="auto"
+            controlsList="nodownload"
+            playsInline
+            controls
+            onError={(e) => {
+              console.error("Video error details:", {
+                error: e.target.error,
+                networkState: e.target.networkState,
+                readyState: e.target.readyState,
+                src: e.target.src,
+              });
+            }}
+            onPlay={() => setIsPlaying(true)}
+            onPause={() => setIsPlaying(false)}
+            onEnded={handleNextVideo}
+          >
+            <source
+              src={getStreamUrl(activeVideo.filename)}
+              type={activeVideo.mimeType || "video/mp4"}
+            />
+            <p>Your browser doesn't support this video format.</p>
+          </video>
         ) : (
           <div
             className={`absolute top-0 left-0 w-full h-full flex items-center justify-center ${theme.waitingListBg}`}

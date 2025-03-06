@@ -14,8 +14,20 @@ export class Video {
   @Column()
   title: string;
 
-  @Column()
-  youtubeUrl: string;
+  @Column({ nullable: true })
+  filename: string;
+
+  @Column({ nullable: true })
+  originalFilename: string;
+
+  @Column({ nullable: true })
+  mimeType: string;
+
+  @Column({ nullable: true })
+  fileSize: number;
+
+  @Column({ nullable: true })
+  videoUrl: string;
 
   @Column({ default: false })
   isActive: boolean;
