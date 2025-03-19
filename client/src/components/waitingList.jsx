@@ -3,7 +3,7 @@ import { Users, AlertCircle, Clock } from "lucide-react";
 
 const QueueNumber = memo(({ queue, theme }) => (
   <div
-    className={`inline-block ${theme.queueNumberBg} rounded-lg shadow-sm px-6 py-3 m-2 border`}
+    className={`inline-block ${theme.queueNumberBg} rounded-lg shadow-sm px-6 py-3 mr-2 flex-shrink-0 border`}
   >
     <div className="flex items-center gap-2">
       <span
@@ -36,12 +36,13 @@ const WaitingList = memo(({ waitingQueues = [], theme }) => {
 
   // Get maximum estimated wait time
   const maxWaitTime = Math.max(
-    ...waitingQueues.map((queue) => queue.estimated_wait_time || 0)
+    ...waitingQueues.map((queue) => queue.estimated_wait_time || 0),
+    0
   );
 
   return (
     <div
-      className={`${theme.cardBackground} rounded-xl shadow-lg mb-8 overflow-hidden`}
+      className={`${theme.cardBackground} rounded-xl shadow-lg overflow-hidden`}
     >
       {/* Header */}
       <div className={`${theme.banner} px-6 py-4`}>
@@ -56,20 +57,21 @@ const WaitingList = memo(({ waitingQueues = [], theme }) => {
         </h2>
       </div>
 
-      {/* Content */}
-      <div className={`p-4 ${theme.waitingListBg}`}>
+      {/* Content - Horizontal Scrolling */}
+      <div className={`py-4 px-4 ${theme.waitingListBg}`}>
         {waitingQueues.length > 0 ? (
           <div
-            className="overflow-hidden relative"
+            className="overflow-x-auto pb-2"
             onMouseEnter={handleMouseEnter}
             onMouseLeave={handleMouseLeave}
           >
             <div
-              className={`flex flex-wrap gap-2 ${
-                shouldAnimate && waitingQueues.length > 4
-                  ? "animate-scroll"
+              className={`flex flex-nowrap min-w-full ${
+                shouldAnimate && waitingQueues.length > 6
+                  ? "animate-scroll-horizontal"
                   : ""
               }`}
+              style={{ paddingBottom: "8px" }} /* For scrollbar padding */
             >
               {waitingQueues.map((queue) => (
                 <QueueNumber key={queue.queue_id} queue={queue} theme={theme} />

@@ -83,9 +83,9 @@ const EntertainmentSection = ({ theme, compact = false }) => {
 
   return (
     <div
-      className={`${theme.cardBackground} rounded-xl shadow-lg overflow-hidden h-full`}
+      className={`${theme.cardBackground} rounded-xl shadow-lg h-full flex flex-col`}
     >
-      <div className={`${theme.banner} px-4 py-3`}>
+      <div className={`${theme.banner} px-4 py-3 flex-shrink-0`}>
         <div className="flex justify-between items-center">
           <h2
             className={`${
@@ -118,13 +118,7 @@ const EntertainmentSection = ({ theme, compact = false }) => {
           </button>
         </div>
       </div>
-      <div
-        className="relative w-full"
-        style={{
-          height: "220px",
-          maxHeight: "220px",
-        }}
-      >
+      <div className="relative w-full flex-grow">
         {activeVideo?.filename ? (
           <video
             ref={videoRef}

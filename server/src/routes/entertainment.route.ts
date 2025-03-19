@@ -20,6 +20,7 @@ router.get("/videos", getVideos);
 router.post("/videos/add", verifyToken, upload.single("video"), addVideo);
 router.put("/videos/:id", verifyToken, upload.single("video"), updateVideo);
 router.delete("/videos/:id", verifyToken, deleteVideo);
+
 router.get("/videos/stream/:filename", streamVideo);
 router.get("/videos/:id/next", getNextVideo);
 router.put("/videos/:id/activate", setActiveVideo);

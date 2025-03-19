@@ -52,7 +52,6 @@ const ViewQueue = () => {
         data: data,
       });
 
-      // Use the service for announcements
       announcementService.processReceivedAnnouncement(
         data,
         reannounceTransaction,
@@ -60,14 +59,12 @@ const ViewQueue = () => {
       );
     };
 
-    // Subscribe to WebSocket events
     const subscriptionId = websocketService.subscribe((data) => {
       if (data && data.type === "TRANSACTION_ANNOUNCED") {
         handleAnnouncementEvent(data);
       }
     });
 
-    // Cleanup
     return () => {
       if (subscriptionId) {
         websocketService.unsubscribe(subscriptionId);
@@ -97,48 +94,46 @@ const ViewQueue = () => {
     return <ErrorDisplay error={error} />;
   }
 
-  // Filter active transactions (not completed)
-  const activeTransactions = allTransactions.filter((t) => !t.completed_at);
-
   return (
     <div className={`min-h-screen bg-${theme.background} flex flex-col`}>
-      {/* Current Queue Banner at the top */}
-      {mostRecentTransaction && (
+      {/* {mostRecentTransaction && (
         <CurrentQueueBanner
           transaction={mostRecentTransaction}
           formatTime={formatTime}
           theme={theme}
         />
-      )}
+      )} */}
 
-      <div className="container mx-auto p-2 flex-grow flex flex-col">
-        {/* Waiting List below the banner */}
-        <div className="w-full p-1 mb-2">
+      <div className="container mx-auto flex-grow flex flex-col p-2">
+        {/* Waiting List Section - Full width */}
+        <div className="w-full mb-2">
           <WaitingList waitingQueues={memoizedWaitingQueues} theme={theme} />
         </div>
 
-        {/* Currently Serving Section below Waiting List */}
-        <div className="w-full p-1 mb-2">
-          <CurrentlyServingSection
-            transactions={allTransactions}
-            formatTime={formatTime}
-            theme={theme}
-          />
-        </div>
-
-        {/* Entertainment and Most Recent in a flex layout */}
-        <div className="flex flex-wrap">
-          <div className="w-full md:w-1/2 p-1">
-            <EntertainmentSection theme={theme} compact={true} />
+        {/* Top Row - Entertainment and Last Called side by side */}
+        <div className="flex flex-row mb-2 h-[40vh]">
+          {/* Entertainment Section - Left half */}
+          <div className="w-1/2 pr-1 h-full">
+            <EntertainmentSection theme={theme} compact={false} />
           </div>
 
-          <div className="w-full md:w-1/2 p-1">
+          {/* Last Called Section - Right half */}
+          <div className="w-1/2 pl-1 h-full">
             <LastCalledSection
               transaction={mostRecentTransaction}
               formatTime={formatTime}
               theme={theme}
             />
           </div>
+        </div>
+
+        {/* Currently Serving Section - Full width at bottom */}
+        <div className="w-full">
+          <CurrentlyServingSection
+            transactions={allTransactions}
+            formatTime={formatTime}
+            theme={theme}
+          />
         </div>
       </div>
 
